@@ -1,5 +1,5 @@
-# test_auth_endpoints.py
 import pytest
+from app.libs.auth import get_current_user_from_token, get_current_user
 
 
 def test_auth_debug_as_admin(client, auth_headers):

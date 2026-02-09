@@ -1,0 +1,9 @@
+services:
+  test_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: dataforge_test
+    ports:
+      - "5433:5432"
