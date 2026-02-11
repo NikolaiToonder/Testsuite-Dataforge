@@ -32,7 +32,8 @@ from test_mocks.data_mocks import (
     mock_machine
 )
 from test_mocks.service_mocks import (
-    setup_silent_db_mock
+    setup_silent_db_mock,
+    mock_db_row
 )
 
 # --- Global Fixtures ---
@@ -40,7 +41,6 @@ from test_mocks.service_mocks import (
 def global_db_blocker(setup_silent_db_mock):
     """Uses the service_mock logic to prevent real DB hits."""
     yield setup_silent_db_mock
-
 
 @pytest.fixture
 def auth_headers():

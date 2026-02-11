@@ -5,7 +5,6 @@ class TestAuthDebug:
 
     def test_get_current_user_id_as_admin(self, admin_client):
         """Test getting user ID when authenticated as an admin"""
-        # Note: We assume admin_client already handles the 'Depends(get_current_user)'
         response = admin_client.get("/api/auth-debug/user-id")
         
         assert response.status_code == 200
