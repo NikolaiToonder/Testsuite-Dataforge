@@ -2,7 +2,7 @@ import pytest
 import asyncio
 import os
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 from testcontainers.postgres import PostgresContainer
 
@@ -117,6 +117,8 @@ def reset_db_state():
     yield
     db_mod._connection_pool = None
     _tenant_cache.clear()
+
+
 @pytest.fixture
 def db(db_url):
     """Simple database connection for inserting/cleaning test data.
@@ -192,3 +194,10 @@ def mock_tenant_info():
     mock.tenant_name = admin_info.tenant_name
     mock.tenant_slug = admin_info.tenant_slug
     return mock
+
+@pytest.fixture(autouse=True)
+def mock_super_admin(mocker):
+    mocker.patch(
+        "app.libs.super_admin_utils.is_super_admin_with_auto_register",
+        new_callable=AsyncMock, return_value=True
+    )
