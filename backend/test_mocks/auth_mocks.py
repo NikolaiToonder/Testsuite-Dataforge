@@ -101,3 +101,10 @@ def readonly_client() -> Generator[TestClient, None, None]:
         yield c
 
     app.dependency_overrides.clear()
+
+@pytest.fixture(autouse=True)
+def mock_super_admin(self, mocker):
+    mocker.patch(
+        "app.libs.super_admin_utils.is_super_admin_with_auto_register",
+        new_callable=AsyncMock, return_value=True
+    )
