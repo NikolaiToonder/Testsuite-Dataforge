@@ -96,7 +96,7 @@ class TestBrowsingLayouts:
 
         assert data["layouts"] == []
 
-    def test_all_user_layouts_show_up_in_the_list(self, admin_client, db):
+    def test_show_all_user_layouts(self, admin_client, db):
         insert_named_layout(db, "Morning View")
         insert_named_layout(db, "Evening View")
 
@@ -114,7 +114,7 @@ class TestBrowsingLayouts:
 
         assert data["layouts"][0]["name"] == "My Default"
 
-    def test_fetching_a_specific_layout_returns_its_widgets(self, admin_client, db):
+    def test_fetch_layout_return_widget(self, admin_client, db):
         layout_id = insert_named_layout(db, "Detailed View", widgets=SAMPLE_WIDGETS)
 
         data = admin_client.get(f"/api/dashboard-layout/named/{layout_id}").json()
@@ -122,7 +122,8 @@ class TestBrowsingLayouts:
         assert data["id"] == layout_id
         assert len(data["widgets"]) == 2
 
-    def test_fetching_a_layout_that_doesnt_exist_gives_404(self, admin_client):
+    def test_fetch_layout_404(self, admin_client):
+        """Layout doesnt exist"""
         response = admin_client.get(f"/api/dashboard-layout/named/{uuid.uuid4()}")
 
         assert response.status_code == 404

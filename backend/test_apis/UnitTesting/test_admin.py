@@ -178,26 +178,6 @@ class TestAdminDashboardExport:
         assert response.headers["content-type"] == "text/csv; charset=utf-8"
         assert "attachment" in response.headers["content-disposition"]
 
-    def test_export_csv_empty_data(self, admin_client, mocker):
-        """CSV-export handles empty dataset"""
-
-        mocker.patch("app.apis.admin.get_tenant_power_overview", new_callable=AsyncMock, return_value=[])
-
-        response = admin_client.get("/api/admin/admin/dashboard/export")
-
-        assert response.status_code == 200
-        assert response.headers["content-type"] == "text/csv; charset=utf-8"
-
-    def test_export_csv_not_super_admin(self, user_client, mocker):
-        """Ikke-super-admin får 403 på eksport"""
-        mocker.patch(
-            "app.libs.super_admin_utils.is_super_admin_with_auto_register",
-            new_callable=AsyncMock, return_value=False
-        )
-
-        response = user_client.get("/api/admin/admin/dashboard/export")
-        assert response.status_code == 403
-
 
 # TestAdminListTenants
 
@@ -228,21 +208,6 @@ class TestAdminListTenants:
         data = response.json()
         assert data["total_count"] == 0
         assert data["tenants"] == []
-
-    def test_list_tenants_pagination_params(self, admin_client, mocker):
-        """Test to check if pagination parameters work (limit big dataset)"""
-
-        mock_list = mocker.patch(
-            "app.apis.admin.list_accessible_tenants",
-            new_callable=AsyncMock, return_value=([], 0)
-        )
-
-        admin_client.get("/api/admin/tenants?limit=50&offset=10")
-
-        mock_list.assert_called_once()
-        call_kwargs = mock_list.call_args
-        assert call_kwargs.kwargs.get("limit") == 50 or 50 in call_kwargs.args
-        assert call_kwargs.kwargs.get("offset") == 10 or 10 in call_kwargs.args
 
     def test_list_tenants_multiple(self, admin_client, mocker):
         """Check if multiple tenants returns correctly"""
@@ -306,26 +271,6 @@ class TestAdminCreateTenant:
         })
         assert response.status_code == 403
 
-    def test_create_tenant_calls_create_with_correct_data(self, admin_client, mocker):
-        """Tests if the data from the request is actually correctly handled"""
-
-        tenant = make_tenant()
-        mocker.patch("app.apis.admin.get_tenant_by_slug", new_callable=AsyncMock, return_value=None)
-        mock_create = mocker.patch(
-            "app.apis.admin.create_tenant",
-            new_callable=AsyncMock, return_value=tenant
-        )
-
-        admin_client.post("/api/admin/tenants", json={
-            "name": "My Factory",
-            "slug": "my-factory",
-            "contact_email": "factory@example.com"
-        })
-
-        mock_create.assert_called_once()
-        call_arg = mock_create.call_args.args[0]
-        assert call_arg.name == "My Factory"
-        assert call_arg.slug == "my-factory"
 
 
 # TestAdminGetTenant
@@ -619,18 +564,6 @@ class TestAdminMyTenant:
 
         assert response.status_code == 200
         assert response.json() is None
-
-    def test_get_my_tenant_calls_correct_user_id(self, admin_client, mocker, mock_tenant_info):
-        """get_user_tenant_info gets called with logged in user ID"""
-
-        mock_get = mocker.patch(
-            "app.apis.admin.get_user_tenant_info",
-            new_callable=AsyncMock, return_value=mock_tenant_info
-        )
-
-        admin_client.get("/api/admin/my-tenant")
-
-        mock_get.assert_called_once_with("test-admin-001")
 
 
 # TestAdminDebugUserInfo

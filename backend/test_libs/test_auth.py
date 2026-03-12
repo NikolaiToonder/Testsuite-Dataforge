@@ -26,9 +26,7 @@ def run(coro):
         loop.close()
 
 
-# ---------------------------------------------------------------------------
 # Shared factories
-# ---------------------------------------------------------------------------
 
 def make_tenant_info(**kwargs) -> MagicMock:
     info = MagicMock(spec=UserTenantInfo)
@@ -46,9 +44,7 @@ def make_authorized_user(**kwargs) -> AuthorizedUser:
     )
 
 
-# ---------------------------------------------------------------------------
 # AuthorizedUser
-# ---------------------------------------------------------------------------
 
 class TestAuthorizedUser:
 
@@ -87,9 +83,7 @@ class TestAuthorizedUser:
         assert user.can_access_tenant(str(uuid.uuid4())) is True
 
 
-# ---------------------------------------------------------------------------
 # get_current_user_from_token
-# ---------------------------------------------------------------------------
 
 class TestGetCurrentUserFromToken:
 
@@ -127,9 +121,7 @@ class TestGetCurrentUserFromToken:
         assert exc_info.value.status_code == 401
 
 
-# ---------------------------------------------------------------------------
-# get_current_user (acting-as-tenant header)
-# ---------------------------------------------------------------------------
+# get_current_user
 
 class TestGetCurrentUser:
 
@@ -154,13 +146,11 @@ class TestGetCurrentUser:
         assert result.acting_as_tenant_id is None
 
 
-# ---------------------------------------------------------------------------
 # Utility functions
-# ---------------------------------------------------------------------------
 
 class TestEnsureTenantAccess:
 
-    def test_wrong_tenant_raises_403(self):
+    def test_wrong_tenant(self):
         user = make_authorized_user(tenant_info=make_tenant_info(tenant_id=uuid.uuid4()))
         with pytest.raises(HTTPException) as exc_info:
             ensure_tenant_access(user, str(uuid.uuid4()))
@@ -168,7 +158,7 @@ class TestEnsureTenantAccess:
 
     def test_super_admin_bypasses(self):
         user = make_authorized_user(is_super_admin=True, tenant_info=None)
-        ensure_tenant_access(user, str(uuid.uuid4()))  # should not raise
+        ensure_tenant_access(user, str(uuid.uuid4()))
 
 
 class TestGetUserTenantId:
@@ -178,16 +168,14 @@ class TestGetUserTenantId:
         user = make_authorized_user(tenant_info=make_tenant_info(tenant_id=tid))
         assert get_user_tenant_id(user) == str(tid)
 
-    def test_no_tenant_raises_400(self):
+    def test_no_tenant(self):
         user = make_authorized_user(tenant_info=None)
         with pytest.raises(HTTPException) as exc_info:
             get_user_tenant_id(user)
         assert exc_info.value.status_code == 400
 
 
-# ---------------------------------------------------------------------------
 # Role guards
-# ---------------------------------------------------------------------------
 
 class TestRoleGuards:
 

@@ -174,7 +174,7 @@ class TestCustomerUpdateMachine:
     """Test suite for PUT /customer/machines/{machine_id} endpoint"""
 
     def test_update_machine_success(self, admin_client, db):
-        """Test updating a machine successfully - uses real DB"""
+        """Test updating a machine successfully"""
         machine_id = str(uuid.uuid4())
         tenant_id = "11111111-1111-1111-1111-111111111111"
         
@@ -215,7 +215,7 @@ class TestCustomerDeleteMachine:
     """Test suite for DELETE /customer/machines/{machine_id} endpoint"""
 
     def test_delete_machine_success(self, admin_client, db):
-        """Test deleting a machine successfully - uses real DB"""
+        """Test deleting a machine successfully"""
         machine_id = str(uuid.uuid4())
         tenant_id = "11111111-1111-1111-1111-111111111111"
         
@@ -237,7 +237,7 @@ class TestCustomerDeleteMachine:
         assert result is None
 
     def test_delete_machine_not_found(self, admin_client):
-        """Test deleting a machine that doesn't exist - uses real DB (empty machines table)"""
+        """Test deleting a machine that doesn't exist"""
         machine_id = uuid.uuid4()
         
         response = admin_client.delete(f"/api/customer/machines/{machine_id}")

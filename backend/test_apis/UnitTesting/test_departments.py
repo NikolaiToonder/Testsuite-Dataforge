@@ -195,12 +195,12 @@ class TestCreateDepartment:
         
         dept_data = {
             "name": "New Department",
-            "color": "invalid"  # Invalid hex color
+            "color": "invalid"
         }
         
         response = admin_client.post("/api/departments/", json=dept_data)
         
-        assert response.status_code == 422  # Pydantic validation error
+        assert response.status_code == 422  # Pydantic validation error, json is valid but data is corrupt!
 
 
 class TestUpdateDepartment:
@@ -362,7 +362,6 @@ class TestDeleteDepartment:
             "name": "Department"
         })
         
-        # Mock transaction properly
         mock_transaction = MagicMock()
         mock_transaction.__aenter__ = AsyncMock(return_value=mock_transaction)
         mock_transaction.__aexit__ = AsyncMock(return_value=None)
@@ -386,14 +385,13 @@ class TestDeleteDepartment:
             "name": "Department"
         })
         
-        # Mock transaction properly
         mock_transaction = MagicMock()
         mock_transaction.__aenter__ = AsyncMock(return_value=mock_transaction)
         mock_transaction.__aexit__ = AsyncMock(return_value=None)
         mock_asyncpg_connect.transaction = MagicMock(return_value=mock_transaction)
         
         mock_asyncpg_connect.fetchrow = AsyncMock(return_value=dept_row)
-        # Return non-zero counts to verify cascade message
+
         mock_asyncpg_connect.fetchval = AsyncMock(side_effect=[5, 2, 3])
         mock_asyncpg_connect.execute = AsyncMock()
         
@@ -401,7 +399,7 @@ class TestDeleteDepartment:
         
         assert response.status_code == 200
         data = response.json()
-        # Should mention cascaded items in Norwegian
+
         assert "5 maskiner" in data["message"]
         assert "2 gateways" in data["message"]
         assert "3 hypoteser" in data["message"]

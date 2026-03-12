@@ -8,7 +8,7 @@ from app.libs.payload_decoders import (
     calculate_part_detection,
     decode_sensor_payload,
 )
-
+# Alot of the testdata here is fetched from the comments of the relevant file
 
 # EM400-TLD distance sensor
 
@@ -45,7 +45,7 @@ class TestDecodeEM400TLD:
         assert result["distance_mm"] is None
 
     def test_format_detected_hex(self):
-        payload = "0175621"  # Odd length to force base64 path, use valid hex
+        payload = "0175621" 
         payload = "017562"
         result = decode_milesight_em400_tld(payload)
         assert result["format_detected"] == "HEX"
@@ -91,8 +91,7 @@ class TestDecodeHotdrop:
 class TestDecodeCT101:
 
     def test_valid_payload(self):
-        
-        # From docstring example: 03972A3301000498B5020967FFFF
+        #from docstring example: 03972A3301000498B5020967FFFF
         result = decode_milesight_ct101("03972A3301000498B5020967FFFF")
         assert result["total_current_ah"] == pytest.approx(786.34, rel=1e-3)
         assert result["rms_amps"] == pytest.approx(6.93, rel=1e-3)
@@ -109,7 +108,7 @@ class TestDecodeCT101:
 
     def test_power_estimated_from_current(self):
         # current = 10.0A → power = 230 * 10 / 1000 = 2.3 kW
-        current_raw = struct.pack('<H', 1000)  # 1000 / 100 = 10.0A
+        current_raw = struct.pack('<H', 1000) 
         payload = bytes([0x04, 0x98]) + current_raw
         result = decode_milesight_ct101(payload.hex())
         assert result["power_kw"] == pytest.approx(2.3, rel=1e-3)
