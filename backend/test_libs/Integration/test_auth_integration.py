@@ -6,7 +6,7 @@ TEST_TENANT = "11111111-1111-1111-1111-111111111111"
 
 
 class TestRoleAccessOnRealRoutes:
-    """Role enforcement tested against real app routes."""
+    """Role enforcement tested against real app routes"""
 
     def test_customer_user_can_access_my_tenant(self, user_client):
         res = user_client.get("/api/admin/my-tenant")
@@ -98,4 +98,4 @@ def patch_admin(mocker, value=True):
         "app.apis.admin.is_super_admin_with_auto_register",
         new_callable=AsyncMock,
         return_value=value,
-    )
+    ) 
