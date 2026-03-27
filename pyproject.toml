@@ -1,0 +1,20 @@
+[tool.ruff]
+# Kun sjekk for faktiske logiske feil (E) og Python-spesifikke feil (F)
+select = ["E", "F"]
+
+# Her spesifiserer vi ting vi driter i:
+# F401: Imported but unused (Veldig vanlig støy)
+# F841: Local variable is assigned to but never used
+# E402: Module level import not at top of file
+# E501: Line too long
+ignore = ["F401", "F841", "E402", "E501"]
+
+# Ekskluder spesifikke filer eller hele mapper
+exclude = [
+    "initial_seed_data.py"
+]
+
+[tool.ruff.lint]
+# Hvis du har filer som henter ting dynamisk fra DB og linteren 
+# klager på "Undefined name", kan du legge dem til her:
+
