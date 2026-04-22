@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from test_mocks.auth_mocks import TEST_TENANT_ID
+TEST_TENANT_ID = "11111111-1111-1111-1111-111111111111"
 
 
 def _import_user_invitations_module():

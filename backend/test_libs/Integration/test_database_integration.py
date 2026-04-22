@@ -73,6 +73,13 @@ class TestInsertAndRetrieveSensorReading:
 
 class TestGetSensorReadingsFiltering:
 
+    def test_returns_empty_list_when_no_data(self):
+        eui = f"EUI-{uuid.uuid4().hex[:8]}"
+
+        results = run(get_sensor_readings(PowerConsumptionQuery(sensor_euis=[eui], limit=10)))
+
+        assert results == []
+
     def test_filter_by_sensor_eui(self):
         eui_a = f"EUI-{uuid.uuid4().hex[:8]}"
         eui_b = f"EUI-{uuid.uuid4().hex[:8]}"
@@ -115,6 +122,10 @@ class TestGetSensorReadingsFiltering:
 
 
 class TestGetLatestReadingsByMachine:
+
+    def test_returns_empty_dict_when_no_readings(self):
+        result = run(get_latest_readings_by_machine())
+        assert result == {}
 
     def test_returns_latest_reading_per_sensor(self):
         eui = f"EUI-{uuid.uuid4().hex[:8]}"

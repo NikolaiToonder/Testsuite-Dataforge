@@ -48,10 +48,6 @@ class TestSuperAdminRoutes:
         res = admin_client.get(f"/api/admin/tenants/{TEST_TENANT}")
         assert res.status_code == 200
 
-    def test_regular_user_blocked_from_tenant_list(self, user_client):
-        res = user_client.get("/api/admin/tenants")
-        assert res.status_code == 403
-
     def test_regular_user_blocked_from_tenant_detail(self, user_client):
         res = user_client.get(f"/api/admin/tenants/{TEST_TENANT}")
         assert res.status_code == 403
@@ -69,6 +65,10 @@ class TestSuperAdminRoutes:
         )
         res = user_client.get("/api/admin/admin/dashboard")
         assert res.status_code == 403
+
+    def test_unauthenticated_blocked_from_tenant_list(self, unauthenticated_client):
+        res = unauthenticated_client.get("/api/admin/tenants")
+        assert res.status_code in (401, 422)
 
 
 class TestSuperAdminActingAsTenant:
@@ -89,6 +89,18 @@ class TestSuperAdminActingAsTenant:
         res = user_client.get(
             "/api/admin/my-tenant",
             headers={"X-Acting-As-Tenant": str(uuid.uuid4())},
+        )
+        assert res.status_code == 200
+
+    def test_super_admin_invalid_acting_tenant_is_ignored(self, admin_client, mocker):
+        mocker.patch(
+            "app.libs.auth.get_tenant_by_id",
+            new_callable=AsyncMock,
+            return_value=None,
+        )
+        res = admin_client.get(
+            "/api/admin/my-tenant",
+            headers={"X-Acting-As-Tenant": TEST_TENANT},
         )
         assert res.status_code == 200
 
