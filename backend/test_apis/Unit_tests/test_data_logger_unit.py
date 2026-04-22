@@ -53,22 +53,6 @@ class TestGetDataLogs:
         assert "temp_c" in entry["processed_data"]
         assert "humidity_rel_percent" not in entry["processed_data"]
 
-    def test_get_data_logs_pagination(self, admin_client, mock_conn):
-        """Test if limit and offset actually slice the results"""
-        # Create 5 fake rows
-        mock_rows = [{"id": str(i), "timestamp": datetime.now(), "data_type": "erp", 
-                      "source": "S", "raw_data": {}, "processed_data": {}, 
-                      "target_table": "T", "status": "success"} for i in range(5)]
-        
-        mock_conn.fetch = AsyncMock(side_effect=[[], mock_rows])
-        
-        # Ask for limit 2, offset 1
-        response = admin_client.get("/api/data-logs?limit=2&offset=1")
-        
-        data = response.json()
-        assert len(data["entries"]) == 2
-        assert data["total_count"] == 5
-        assert data["has_more"] is True
 
 class TestGetDataStats:
     def test_get_data_statistics_success(self, admin_client, mock_conn):

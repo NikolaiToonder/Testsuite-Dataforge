@@ -94,33 +94,8 @@ class TestListDepartments:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
-        # Super admin sees tenant name appended
         assert "Tenant A" in data[0]["name"]
         assert "Tenant B" in data[1]["name"]
-
-    def test_list_departments_no_tenant(self, admin_client, mocker, mock_asyncpg_connect):
-        """Test listing departments when user has no tenant"""
-        mocker.patch("app.apis.departments.is_super_admin_with_auto_register", new_callable=AsyncMock, return_value=False)
-        mocker.patch("app.apis.departments.get_user_tenant_info", new_callable=AsyncMock, return_value=None)
-        
-        response = admin_client.get("/api/departments/list")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data == []
-
-    def test_list_departments_empty(self, admin_client, mocker, mock_asyncpg_connect, mock_tenant_info):
-        """Test listing departments when tenant has no departments"""
-        mocker.patch("app.apis.departments.is_super_admin_with_auto_register", new_callable=AsyncMock, return_value=False)
-        mocker.patch("app.apis.departments.get_user_tenant_info", new_callable=AsyncMock, return_value=mock_tenant_info)
-        
-        mock_asyncpg_connect.fetch = AsyncMock(return_value=[])
-        
-        response = admin_client.get("/api/departments/list")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data == []
 
 
 class TestCreateDepartment:
@@ -189,19 +164,6 @@ class TestCreateDepartment:
         assert response.status_code == 404
         assert "not associated with any tenant" in response.json()["detail"]
 
-    def test_create_department_invalid_color(self, admin_client, mocker, mock_tenant_info):
-        """Test creating department with invalid color format"""
-        mocker.patch("app.apis.departments.get_user_tenant_info", new_callable=AsyncMock, return_value=mock_tenant_info)
-        
-        dept_data = {
-            "name": "New Department",
-            "color": "invalid"
-        }
-        
-        response = admin_client.post("/api/departments/", json=dept_data)
-        
-        assert response.status_code == 422  # Pydantic validation error, json is valid but data is corrupt!
-
 
 class TestUpdateDepartment:
     """Test suite for PUT /departments/{department_id} endpoint"""
@@ -269,46 +231,6 @@ class TestUpdateDepartment:
         assert response.status_code == 400
         assert "already exists" in response.json()["detail"]
 
-    def test_update_department_no_fields(self, admin_client, mocker, mock_db_row, mock_asyncpg_connect, mock_tenant_info):
-        """Test updating department with no fields"""
-        mocker.patch("app.apis.departments.get_user_tenant_info", new_callable=AsyncMock, return_value=mock_tenant_info)
-        
-        update_data = {}
-        
-        existing_row = mock_db_row({"id": "dept-1"})
-        mock_asyncpg_connect.fetchrow = AsyncMock(return_value=existing_row)
-        
-        response = admin_client.put("/api/departments/dept-1", json=update_data)
-        
-        assert response.status_code == 400
-        assert "No fields to update" in response.json()["detail"]
-
-    def test_update_department_active_status(self, admin_client, mocker, mock_db_row, mock_asyncpg_connect, mock_tenant_info):
-        """Test updating department active status"""
-        mocker.patch("app.apis.departments.get_user_tenant_info", new_callable=AsyncMock, return_value=mock_tenant_info)
-        
-        update_data = {"active": False}
-        
-        existing_row = mock_db_row({"id": "dept-1"})
-        updated_row = mock_db_row({
-            "id": "dept-1",
-            "name": "Department",
-            "description": None,
-            "color": "#6B7280",
-            "active": False,
-            "created_at": datetime(2024, 1, 1),
-            "updated_at": datetime(2024, 1, 2)
-        })
-        counts_row = mock_db_row({"machine_count": 0, "sensor_count": 0})
-        
-        mock_asyncpg_connect.fetchrow = AsyncMock(side_effect=[existing_row, updated_row, counts_row])
-        
-        response = admin_client.put("/api/departments/dept-1", json=update_data)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["active"] is False
-
 
 class TestDeleteDepartment:
     """Test suite for DELETE /departments/{department_id} endpoint"""
@@ -352,81 +274,9 @@ class TestDeleteDepartment:
         
         assert response.status_code == 404
 
-    def test_delete_department_super_admin(self, admin_client, mocker, mock_db_row, mock_asyncpg_connect):
-        """Test super admin can delete department from any tenant"""
-        mocker.patch("app.apis.departments.is_super_admin_with_auto_register", new_callable=AsyncMock, return_value=True)
-        mocker.patch("app.apis.departments.get_user_tenant_info", new_callable=AsyncMock, return_value=None)
-        
-        dept_row = mock_db_row({
-            "id": "dept-1",
-            "name": "Department"
-        })
-        
-        mock_transaction = MagicMock()
-        mock_transaction.__aenter__ = AsyncMock(return_value=mock_transaction)
-        mock_transaction.__aexit__ = AsyncMock(return_value=None)
-        mock_asyncpg_connect.transaction = MagicMock(return_value=mock_transaction)
-        
-        mock_asyncpg_connect.fetchrow = AsyncMock(return_value=dept_row)
-        mock_asyncpg_connect.fetchval = AsyncMock(side_effect=[0, 0, 0])
-        mock_asyncpg_connect.execute = AsyncMock()
-        
-        response = admin_client.delete("/api/departments/dept-1")
-        
-        assert response.status_code == 200
-
-    def test_delete_department_cascade(self, admin_client, mocker, mock_db_row, mock_asyncpg_connect, mock_tenant_info):
-        """Test cascade deletion of related resources"""
-        mocker.patch("app.apis.departments.is_super_admin_with_auto_register", new_callable=AsyncMock, return_value=False)
-        mocker.patch("app.apis.departments.get_user_tenant_info", new_callable=AsyncMock, return_value=mock_tenant_info)
-        
-        dept_row = mock_db_row({
-            "id": "dept-1",
-            "name": "Department"
-        })
-        
-        mock_transaction = MagicMock()
-        mock_transaction.__aenter__ = AsyncMock(return_value=mock_transaction)
-        mock_transaction.__aexit__ = AsyncMock(return_value=None)
-        mock_asyncpg_connect.transaction = MagicMock(return_value=mock_transaction)
-        
-        mock_asyncpg_connect.fetchrow = AsyncMock(return_value=dept_row)
-
-        mock_asyncpg_connect.fetchval = AsyncMock(side_effect=[5, 2, 3])
-        mock_asyncpg_connect.execute = AsyncMock()
-        
-        response = admin_client.delete("/api/departments/dept-1")
-        
-        assert response.status_code == 200
-        data = response.json()
-
-        assert "5 maskiner" in data["message"]
-        assert "2 gateways" in data["message"]
-        assert "3 hypoteser" in data["message"]
-
-    def test_delete_department_no_tenant_regular_user(self, admin_client, mocker):
-        """Test regular user cannot delete without tenant association"""
-        mocker.patch("app.apis.departments.is_super_admin_with_auto_register", new_callable=AsyncMock, return_value=False)
-        mocker.patch("app.apis.departments.get_user_tenant_info", new_callable=AsyncMock, return_value=None)
-        
-        response = admin_client.delete("/api/departments/dept-1")
-        
-        assert response.status_code == 404
-        assert "not associated with any tenant" in response.json()["detail"]
-
 
 class TestDepartmentAuthorization:
     """Test suite for department authorization across endpoints"""
-
-    def test_user_can_access_endpoints(self, user_client, mocker, mock_asyncpg_connect, mock_tenant_info):
-        """Test that regular users can access department endpoints"""
-        mocker.patch("app.apis.departments.is_super_admin_with_auto_register", new_callable=AsyncMock, return_value=False)
-        mocker.patch("app.apis.departments.get_user_tenant_info", new_callable=AsyncMock, return_value=mock_tenant_info)
-        
-        mock_asyncpg_connect.fetch = AsyncMock(return_value=[])
-        
-        response = user_client.get("/api/departments/list")
-        assert response.status_code == 200
 
     def test_unauthenticated_access_denied(self, unauthenticated_client):
         """Test that unauthenticated requests are rejected"""

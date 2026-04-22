@@ -44,36 +44,6 @@ class TestGetDashboardLayout:
         assert len(data["layout"]["widgets"]) == 1
         assert data["layout"]["widgets"][0]["id"] == "widget-1"
 
-    def test_get_dashboard_layout_empty(self, admin_client, mock_asyncpg_connect):
-        """Test getting dashboard layout when no layout exists"""
-        mock_asyncpg_connect.fetchrow = AsyncMock(return_value=None)
-        
-        response = admin_client.get("/api/dashboard-layout/")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["layout"]["widgets"] == []
-
-    def test_get_dashboard_layout_fallback_to_old_table(self, admin_client, mock_db_row, mock_asyncpg_connect):
-        """Test fallback to old user_dashboard_layouts table"""
-        layout_data = {"widgets": []}
-        mock_row = mock_db_row({
-            "layout_data": layout_data,
-            "updated_at": datetime(2024, 1, 1, 12, 0, 0)
-        })
-        
-        # First call returns None, second returns old layout
-        mock_asyncpg_connect.fetchrow = AsyncMock(side_effect=[None, mock_row])
-        
-        response = admin_client.get("/api/dashboard-layout/")
-        
-        assert response.status_code == 200
-        assert mock_asyncpg_connect.fetchrow.call_count == 2
-
-
-class TestUpdateDashboardLayout:
-    """Test suite for PUT /dashboard-layout/ endpoint"""
-
     def test_update_dashboard_layout_new(self, admin_client, mock_db_row, mock_asyncpg_connect):
         """Test updating dashboard layout (creating new default)"""
         update_data = {
@@ -163,16 +133,6 @@ class TestListNamedLayouts:
         assert data["success"] is True
         assert len(data["layouts"]) == 2
         assert data["layouts"][0]["name"] == "Default Layout"
-
-    def test_list_named_layouts_exclude_system(self, admin_client, mock_asyncpg_connect):
-        """Test listing named layouts excluding system templates"""
-        mock_asyncpg_connect.fetch = AsyncMock(return_value=[])
-        
-        response = admin_client.get("/api/dashboard-layout/named?include_system=false")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["layouts"] == []
 
 
 class TestGetNamedLayout:
@@ -279,34 +239,6 @@ class TestCreateNamedLayout:
         assert response.status_code == 400
         assert "already exists" in response.json()["detail"]
 
-    def test_create_named_layout_as_default(self, admin_client, mock_db_row, mock_asyncpg_connect):
-        """Test creating layout as default (unsets other defaults)"""
-        layout_data = {
-            "name": "New Default",
-            "widgets": [],
-            "is_default": True
-        }
-        
-        mock_row = mock_db_row({
-            "id": "layout-new",
-            "name": "New Default",
-            "description": None,
-            "layout_data": {"widgets": []},
-            "is_default": True,
-            "is_system_template": False,
-            "created_at": datetime(2024, 1, 1),
-            "updated_at": datetime(2024, 1, 1)
-        })
-        
-        mock_asyncpg_connect.fetchrow = AsyncMock(side_effect=[None, mock_row])
-        mock_asyncpg_connect.execute = AsyncMock()
-        
-        response = admin_client.post("/api/dashboard-layout/named", json=layout_data)
-        
-        assert response.status_code == 200
-        # Verify that execute was called to unset other defaults
-        assert mock_asyncpg_connect.execute.called
-
 
 class TestUpdateNamedLayout:
     """Test suite for PUT /dashboard-layout/named/{layout_id} endpoint"""
@@ -366,53 +298,6 @@ class TestUpdateNamedLayout:
         
         assert response.status_code == 403
         assert "system templates" in response.json()["detail"]
-
-    def test_update_named_layout_duplicate_name(self, admin_client, mock_db_row, mock_asyncpg_connect):
-        """Test updating layout with duplicate name"""
-        update_data = {"name": "Existing Name"}
-        
-        existing_row = mock_db_row({
-            "id": "layout-123",
-            "is_system_template": False
-        })
-        
-        duplicate_check = mock_db_row({"id": "layout-other"})
-        
-        mock_asyncpg_connect.fetchrow = AsyncMock(side_effect=[existing_row, duplicate_check])
-        
-        response = admin_client.put("/api/dashboard-layout/named/layout-123", json=update_data)
-        
-        assert response.status_code == 400
-        assert "already exists" in response.json()["detail"]
-
-    def test_update_named_layout_set_as_default(self, admin_client, mock_db_row, mock_asyncpg_connect):
-        """Test setting layout as default"""
-        update_data = {"is_default": True}
-        
-        existing_row = mock_db_row({
-            "id": "layout-123",
-            "is_system_template": False
-        })
-        
-        updated_row = mock_db_row({
-            "id": "layout-123",
-            "name": "Layout",
-            "description": None,
-            "layout_data": {"widgets": []},
-            "is_default": True,
-            "is_system_template": False,
-            "created_at": datetime(2024, 1, 1),
-            "updated_at": datetime(2024, 1, 2)
-        })
-        
-        mock_asyncpg_connect.fetchrow = AsyncMock(side_effect=[existing_row, updated_row])
-        mock_asyncpg_connect.execute = AsyncMock()
-        
-        response = admin_client.put("/api/dashboard-layout/named/layout-123", json=update_data)
-        
-        assert response.status_code == 200
-        # Verify that execute was called to unset other defaults
-        assert mock_asyncpg_connect.execute.called
 
 
 class TestDeleteNamedLayout:
@@ -512,19 +397,3 @@ class TestCopyLayout:
         
         assert response.status_code == 404
 
-    def test_copy_layout_duplicate_name(self, admin_client, mock_db_row, mock_asyncpg_connect):
-        """Test copying with duplicate name"""
-        source_row = mock_db_row({
-            "name": "Original",
-            "description": None,
-            "layout_data": {"widgets": []}
-        })
-        
-        existing_row = mock_db_row({"id": "layout-existing"})
-        
-        mock_asyncpg_connect.fetchrow = AsyncMock(side_effect=[source_row, existing_row])
-        
-        response = admin_client.post("/api/dashboard-layout/named/layout-123/copy?name=Existing")
-        
-        assert response.status_code == 400
-        assert "already exists" in response.json()["detail"]

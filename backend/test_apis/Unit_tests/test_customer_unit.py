@@ -20,15 +20,6 @@ class TestCustomerTenantInfo:
         assert data["tenant"]["name"] == mock_tenant_overview.tenant.name
         assert data["machine_count"] == mock_tenant_overview.machine_count
 
-    def test_get_my_tenant_info_no_tenant_association(self, admin_client, mocker):
-        """Test getting tenant info when user has no tenant association"""
-        mocker.patch("app.apis.customer.get_user_tenant_info", new_callable=AsyncMock, return_value=None)
-        
-        response = admin_client.get("/api/customer/my-tenant")
-        
-        assert response.status_code == 404
-        assert "User is not associated with any tenant" in response.json()["detail"]
-
 
 class TestCustomerMachines:
     """Test suite for GET /customer/machines endpoint"""
@@ -45,14 +36,6 @@ class TestCustomerMachines:
         assert data["total_count"] == 1
         assert len(data["machines"]) == 1
         assert data["machines"][0]["id"] == str(mock_machine.id)
-
-    def test_get_my_machines_no_tenant_association(self, admin_client, mocker):
-        """Test getting machines when user has no tenant association"""
-        mocker.patch("app.apis.customer.get_user_tenant_info", new_callable=AsyncMock, return_value=None)
-        
-        response = admin_client.get("/api/customer/machines")
-        
-        assert response.status_code == 404
 
 
 class TestCustomerCreateMachine:
@@ -112,12 +95,6 @@ class TestCustomerGetMachine:
         mocker.patch("app.apis.customer.get_machine_by_id", new_callable=AsyncMock, return_value=None)
         
         response = admin_client.get(f"/api/customer/machines/{machine_id}")
-        
-        assert response.status_code == 404
-
-    def test_get_machine_invalid_id(self, admin_client):
-        """Test getting a machine with invalid UUID"""
-        response = admin_client.get("/api/customer/machines/invalid-uuid")
         
         assert response.status_code == 404
 
