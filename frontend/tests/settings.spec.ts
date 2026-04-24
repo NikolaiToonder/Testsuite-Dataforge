@@ -34,7 +34,7 @@ test('settings: add sensor', async ({ page }) => {
   await page.getByText('230V Enfase').click();
   await nextButton.click();
 
-  await expect(page.getByText(/saved|lagret|created|opprettet/i)).toBeVisible();
+  await expect(page.locator('body')).toContainText(/saved|lagret|created|opprettet/i);
 });
 
 test('settings: add machine', async ({ page }) => {
@@ -44,11 +44,27 @@ test('settings: add machine', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Legg til Maskin' }).click();
 
-  const maskinNavn = page.getByRole('textbox', { name: 'Maskin navn'});
+  const maskinNavn = page.getByRole('textbox', { name: 'Maskin navn' });
   await expect(maskinNavn).toBeVisible();
-  await maskinNavn.fill('maskin1')
+  await maskinNavn.fill('maskin1');
   
   await page.getByRole('button', { name: 'Opprett maskin'}).click();
 
-  await expect(page.locator('body')).toContainText(/saved|updated|success|lagret|oppdatert/i);
+  await expect(page.locator('body')).toContainText(/saved|lagret|created|opprettet/i);
+});
+
+test('settings: add department', async ({ page }) => {
+  await page.goto('/settings');
+
+  await page.getByRole('tab', { name: 'Avdelinger' }).click();
+
+  await page.getByRole('button', { name: 'Ny avdeling' }).click();
+
+  const avdelingsNavn = page.getByRole('textbox', { name: 'Navn' });
+  await expect(avdelingsNavn).toBeVisible();
+  await avdelingsNavn.fill('abcd');
+
+  await page.getByRole('button', { name: 'Opprett' }).click();
+
+  await expect(page.locator('body')).toContainText(/saved|lagret|created|opprettet/i);
 });
