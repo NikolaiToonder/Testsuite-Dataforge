@@ -36,3 +36,19 @@ test('settings: add sensor', async ({ page }) => {
 
   await expect(page.getByText(/saved|lagret|created|opprettet/i)).toBeVisible();
 });
+
+test('settings: add machine', async ({ page }) => {
+  await page.goto('/settings');
+
+  await page.getByRole('tab', { name: 'Maskiner' }).click();
+
+  await page.getByRole('button', { name: 'Legg til Maskin' }).click();
+
+  const maskinNavn = page.getByRole('textbox', { name: 'Maskin navn'});
+  await expect(maskinNavn).toBeVisible();
+  await maskinNavn.fill('maskin1')
+  
+  await page.getByRole('button', { name: 'Opprett maskin'}).click();
+
+  await expect(page.locator('body')).toContainText(/saved|updated|success|lagret|oppdatert/i);
+});
