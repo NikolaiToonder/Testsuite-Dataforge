@@ -135,7 +135,9 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+.auth/
 .env
+.env*
 .envrc
 .venv
 env/
@@ -210,3 +212,7 @@ __marimo__/
 
 lint_log.txt
 testsuite_log.txt
+# Playwright
+playwright-report
+node_modules
+test-results
