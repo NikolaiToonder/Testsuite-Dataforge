@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { emitKeypressEvents } from 'node:readline';
 
 test('settings: page renders', async ({ page }) => {
   await page.goto('/settings');
@@ -27,7 +28,7 @@ test('settings: add sensor', async ({ page }) => {
 
   const sensorEUI = page.getByRole('textbox', { name: 'Sensor EUI'});
   await expect(sensorEUI).toBeVisible();
-  await sensorEUI.fill('abcd1234');
+  await sensorEUI.fill('test1234');
   await nextButton.click();
 
   await expect(page.getByText('Spenningskonfigurasjon')).toBeVisible();
@@ -44,9 +45,9 @@ test('settings: add machine', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Legg til Maskin' }).click();
 
-  const maskinNavn = page.getByRole('textbox', { name: 'Maskin navn' });
-  await expect(maskinNavn).toBeVisible();
-  await maskinNavn.fill('maskin1');
+  const machineName = page.getByRole('textbox', { name: 'Maskin navn' });
+  await expect(machineName).toBeVisible();
+  await machineName.fill('Test Machine');
   
   await page.getByRole('button', { name: 'Opprett maskin'}).click();
 
@@ -60,11 +61,42 @@ test('settings: add department', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Ny avdeling' }).click();
 
-  const avdelingsNavn = page.getByRole('textbox', { name: 'Navn' });
-  await expect(avdelingsNavn).toBeVisible();
-  await avdelingsNavn.fill('abcd');
+  const departmentName = page.getByRole('textbox', { name: 'Navn' });
+  await expect(departmentName).toBeVisible();
+  await departmentName.fill('Test Department');
 
   await page.getByRole('button', { name: 'Opprett' }).click();
+
+  await expect(page.locator('body')).toContainText(/saved|lagret|created|opprettet/i);
+});
+
+test('settings: add erp', async ({ page }) => {
+  await page.goto('/settings');
+
+  await page.getByRole('tab', { name: 'ERP' }).click();
+
+  await page.getByRole('button', { name: 'Legg til ERP' }).click();
+
+  const erpName = page.getByPlaceholder('F.eks. SAP Production System');
+  await expect(erpName).toBeVisible();
+  await erpName.fill('Test System');
+
+  await page.getByText('Velg ERP-type').click();
+  await page.getByText('Monitor ERP').click();
+  
+  const apiEndpoint = page.getByPlaceholder('https://api.example.com/v1');
+  await expect(apiEndpoint).toBeVisible();
+  await apiEndpoint.fill('https://api.test.com/v1')
+
+  const nextButton = page.getByRole('button', { name: 'Neste' });
+  await nextButton.click();
+
+  await expect(page.getByText('Autentiseringstype')).toBeVisible();
+  await nextButton.click();
+
+  await expect(page.getByPlaceholder('order_id')).toBeVisible();
+  
+  await page.getByRole('button', { name: 'Opprett konfigurasjon' }).click();
 
   await expect(page.locator('body')).toContainText(/saved|lagret|created|opprettet/i);
 });
