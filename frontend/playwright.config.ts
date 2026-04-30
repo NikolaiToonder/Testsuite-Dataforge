@@ -4,7 +4,8 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' })
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: '.',
+  testMatch: ['**/end-to-end/**/*.spec.ts'],
   projects: [
     {
       name: 'setup',

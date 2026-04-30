@@ -28,7 +28,7 @@ test('settings: add sensor', async ({ page }) => {
 
   const sensorEUI = page.getByRole('textbox', { name: 'Sensor EUI'});
   await expect(sensorEUI).toBeVisible();
-  await sensorEUI.fill('test1234');
+  await sensorEUI.fill('abcd1234');
   await nextButton.click();
 
   await expect(page.getByText('Spenningskonfigurasjon')).toBeVisible();
