@@ -12,6 +12,10 @@ export default defineConfig({
   dedupe: ['react', 'react-dom'],
   alias: [
     {
+      find: /^sonner$/,
+      replacement: path.resolve(__dirname, 'test-utils/toastMock.ts')
+    },
+    {
       find: /^react-i18next$/,
       replacement: path.resolve(__dirname, 'test-utils/mocks.tsx'),
     },

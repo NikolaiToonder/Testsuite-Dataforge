@@ -1,8 +1,19 @@
+import React from 'react';
 import { vi } from 'vitest';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, params?: Record<string, unknown>) => {
+      if (key === 'profile.security.passwordLastChanged') {
+        return `profile.security.passwordLastChanged ${params?.days}`;
+      }
+
+      if (key === 'profile.security.hoursAgo') {
+        return `profile.security.hoursAgo ${params?.hours}`;
+      }
+
+      return key;
+    },
   }),
 }));
 
@@ -17,21 +28,17 @@ vi.mock('app/auth', () => ({
 }));
 
 vi.mock('components/Layout', () => ({
-  Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-  },
+  Layout: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="layout">{children}</div>
+  ),
 }));
 
 vi.mock('lucide-react', () => ({
-  User: () => <span />,
+  User: () => <span data-testid="icon-user" />,
   Mail: () => <span />,
   Phone: () => <span />,
   MapPin: () => <span />,
-  Camera: () => <span />,
+  Camera: () => <span data-testid="camera-icon" />,
   Shield: () => <span />,
   Key: () => <span />,
   Activity: () => <span />,
@@ -41,7 +48,9 @@ vi.mock('lucide-react', () => ({
 }));
 
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  Button: ({ children, ...props }: any) => (
+    <button {...props}>{children}</button>
+  ),
 }));
 
 vi.mock('@/components/ui/input', () => ({
@@ -49,7 +58,9 @@ vi.mock('@/components/ui/input', () => ({
 }));
 
 vi.mock('@/components/ui/label', () => ({
-  Label: ({ children, ...props }: any) => <label {...props}>{children}</label>,
+  Label: ({ children, ...props }: any) => (
+    <label {...props}>{children}</label>
+  ),
 }));
 
 vi.mock('@/components/ui/textarea', () => ({
@@ -66,7 +77,9 @@ vi.mock('@/components/ui/card', () => ({
 vi.mock('@/components/ui/avatar', () => ({
   Avatar: ({ children }: any) => <div>{children}</div>,
   AvatarImage: () => null,
-  AvatarFallback: ({ children }: any) => <div>{children}</div>,
+  AvatarFallback: ({ children }: any) => (
+    <div data-testid="avatar-fallback">{children}</div>
+  ),
 }));
 
 vi.mock('@/components/ui/badge', () => ({
@@ -77,9 +90,37 @@ vi.mock('@/components/ui/separator', () => ({
   Separator: () => <hr />,
 }));
 
-vi.mock('@/components/ui/tabs', () => ({
-  Tabs: ({ children }: any) => <div>{children}</div>,
-  TabsList: ({ children }: any) => <div>{children}</div>,
-  TabsTrigger: ({ children }: any) => <button>{children}</button>,
-  TabsContent: ({ children }: any) => <div>{children}</div>,
-}));
+vi.mock('@/components/ui/tabs', () => {
+  const React = require('react');
+
+  return {
+    Tabs: ({ value, onValueChange, children }: any) => (
+      <div data-testid="tabs" data-value={value}>
+        {React.Children.map(children, (child: any) =>
+          React.isValidElement(child)
+            ? React.cloneElement(child, { activeValue: value, onValueChange })
+            : child
+        )}
+      </div>
+    ),
+
+    TabsList: ({ children, activeValue, onValueChange }: any) => (
+      <div>
+        {React.Children.map(children, (child: any) =>
+          React.isValidElement(child)
+            ? React.cloneElement(child, { activeValue, onValueChange })
+            : child
+        )}
+      </div>
+    ),
+
+    TabsTrigger: ({ value, children, onValueChange }: any) => (
+      <button type="button" onClick={() => onValueChange(value)}>
+        {children}
+      </button>
+    ),
+
+    TabsContent: ({ value, activeValue, children }: any) =>
+      value === activeValue ? <div>{children}</div> : null,
+  };
+});
