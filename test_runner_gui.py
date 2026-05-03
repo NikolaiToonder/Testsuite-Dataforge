@@ -11,8 +11,8 @@ import threading
 import webbrowser
 import time
 from pathlib import Path
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlparse
 
 TEST_DIR = Path(__file__).parent
 PORT = 9999
@@ -24,448 +24,566 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🧪 Test Suite Runner</title>
+    <title>Test Suite Runner</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f0f0f0;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        
         .container {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
             width: 100%;
             max-width: 900px;
             overflow: hidden;
         }
-        
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e1e2e;
             color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-        
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
-        
-        .content {
-            padding: 30px;
-        }
-        
-        .control-panel {
+            padding: 20px 24px;
             display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
             align-items: center;
+            gap: 12px;
         }
-        
-        label {
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
-        }
-        
-        select {
-            flex: 1;
-            min-width: 250px;
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-        
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .button-group {
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .header p { font-size: 13px; opacity: 0.6; margin-top: 2px; }
+        .toolbar {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
             display: flex;
             gap: 10px;
+            align-items: center;
+            background: #fafafa;
         }
-        
-        button {
-            padding: 10px 20px;
-            border: none;
+        select {
+            flex: 1;
+            padding: 7px 10px;
+            border: 1px solid #ddd;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
+            background: white;
+        }
+        .btn {
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
-            white-space: nowrap;
+            border: none;
+            transition: opacity 0.2s;
         }
-        
-        .btn-run {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            flex: 1;
-            min-width: 120px;
-        }
-        
-        .btn-run:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-stop {
-            background: #ff6b6b;
-            color: white;
-            flex: 0;
-        }
-        
-        .btn-stop:hover:not(:disabled) {
-            background: #ff5252;
-        }
-        
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .status {
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-weight: 600;
-            font-size: 14px;
-            display: none;
-        }
-        
-        .status.show {
-            display: block;
-        }
-        
-        .status.info {
-            background: #e3f2fd;
-            color: #1976d2;
-            border-left: 4px solid #1976d2;
-        }
-        
-        .status.success {
-            background: #e8f5e9;
-            color: #388e3c;
-            border-left: 4px solid #388e3c;
-        }
-        
-        .status.error {
-            background: #ffebee;
-            color: #d32f2f;
-            border-left: 4px solid #d32f2f;
-        }
-        
-        .output-container {
-            background: #1e1e1e;
-            border-radius: 6px;
-            overflow: hidden;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        #output {
-            padding: 15px;
-            height: 400px;
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-run { background: #5c6bc0; color: white; }
+        .btn-run:hover:not(:disabled) { background: #4a5ab5; }
+        .btn-stop { background: #ef5350; color: white; }
+        .btn-stop:hover:not(:disabled) { background: #e53935; }
+        .output-area {
+            padding: 16px;
+            min-height: 360px;
+            max-height: 480px;
             overflow-y: auto;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 13px;
-            color: #d4d4d4;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            word-wrap: break-word;
+            font-size: 12.5px;
+            line-height: 1.6;
         }
-        
-        .line-success { color: #4ec9b0; }
-        .line-error { color: #f48771; }
-        .line-info { color: #9cdcfe; }
-        .line-warning { color: #ce9178; }
-        .line-pass { color: #89d185; }
-        .line-fail { color: #f48771; }
-        
-        .footer {
-            padding: 15px 30px;
-            background: #f5f5f5;
-            border-top: 1px solid #e0e0e0;
+        .placeholder { color: #aaa; font-style: italic; }
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #999;
+            margin: 14px 0 6px;
+            font-family: -apple-system, sans-serif;
+        }
+        .section-label:first-child { margin-top: 0; }
+        .passes-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            color: #888;
             font-size: 12px;
-            color: #666;
+            cursor: pointer;
+            font-family: -apple-system, sans-serif;
+            background: none;
+            border: none;
+            text-align: left;
         }
-        
-        @media (max-width: 600px) {
-            .container {
-                max-width: 100%;
-            }
-            
-            .control-panel {
-                flex-direction: column;
-            }
-            
-            .button-group {
-                width: 100%;
-            }
-            
-            .btn-run, .btn-stop {
-                flex: 1;
-            }
-            
-            #output {
-                height: 300px;
-            }
+        .passes-toggle:hover { color: #555; }
+        .passes-list { margin-top: 4px; }
+        .test-pass {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 2px 0;
+            color: #888;
+            font-size: 12px;
+        }
+        .dot-pass {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #66bb6a;
+            flex-shrink: 0;
+        }
+        .test-fail {
+            margin: 6px 0;
+            border: 1px solid #ffcdd2;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .test-fail-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            background: #fff5f5;
+            color: #c62828;
+            font-size: 12.5px;
+            font-weight: 600;
+        }
+        .dot-fail {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #ef5350;
+            flex-shrink: 0;
+        }
+        .test-fail-body {
+            padding: 8px 10px;
+            background: white;
+            font-size: 12px;
+            color: #555;
+        }
+        .fail-location {
+            margin-bottom: 6px;
+            font-family: -apple-system, sans-serif;
+        }
+        .fail-location code {
+            background: #f5f5f5;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        .assertion-block {
+            background: #fff8f8;
+            border-left: 3px solid #ef9a9a;
+            border-radius: 0 4px 4px 0;
+            padding: 6px 10px;
+            color: #b71c1c;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        .summary-bar {
+            padding: 10px 16px;
+            border-top: 1px solid #eee;
+            background: #fafafa;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: #888;
+            flex-wrap: wrap;
+        }
+        .badge {
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-pass { background: #e8f5e9; color: #2e7d32; }
+        .badge-fail { background: #ffebee; color: #c62828; }
+        .badge-skip { background: #fff8e1; color: #f57f17; }
+        .badge-error { background: #fce4ec; color: #880e4f; }
+        .spinner {
+            display: inline-block;
+            width: 10px; height: 10px;
+            border: 2px solid #ddd;
+            border-top-color: #5c6bc0;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .footer {
+            padding: 8px 16px;
+            font-size: 11px;
+            color: #bbb;
+            border-top: 1px solid #f0f0f0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🧪 Test Suite Runner</h1>
-            <p>Run your tests with a single click - no terminal needed!</p>
-        </div>
-        
-        <div class="content">
-            <div class="control-panel">
-                <label for="scope">Select Tests:</label>
-                <select id="scope">
-                    <option value="all">Loading...</option>
-                </select>
-                <div class="button-group">
-                    <button class="btn-run" id="runBtn">▶ Run Tests</button>
-                    <button class="btn-stop" id="stopBtn" disabled>⏹ Stop</button>
-                </div>
-            </div>
-            
-            <div id="status" class="status"></div>
-            
-            <div class="output-container">
-                <pre id="output">Ready to run tests...</pre>
-            </div>
-        </div>
-        
-        <div class="footer">
-            📁 Test Directory: {test_dir}
+<div class="container">
+    <div class="header">
+        <div>
+            <h1>Test Suite Runner</h1>
+            <p>Test Directory: {test_dir}</p>
         </div>
     </div>
-    
-    <script>
-        const scopeSelect = document.getElementById('scope');
-        const runBtn = document.getElementById('runBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const output = document.getElementById('output');
-        const statusDiv = document.getElementById('status');
-        let isRunning = false;
-        
-        // Load available test scopes
-        async function loadScopes() {
-            try {
-                const response = await fetch('/api/scopes');
-                const data = await response.json();
-                
-                scopeSelect.innerHTML = '';
-                data.scopes.forEach(scope => {
-                    const option = document.createElement('option');
-                    option.value = scope;
-                    option.textContent = scope === 'all' ? '📦 All Tests' : scope;
-                    scopeSelect.appendChild(option);
-                });
-            } catch (error) {
-                showStatus('Error loading test scopes', 'error');
+    <div class="toolbar">
+        <select id="scope"><option value="all">Loading...</option></select>
+        <button class="btn btn-run" id="runBtn">Run Tests</button>
+        <button class="btn btn-stop" id="stopBtn" disabled>Stop</button>
+    </div>
+    <div class="output-area" id="outputArea">
+        <span class="placeholder">Ready to run tests...</span>
+    </div>
+    <div class="summary-bar" id="summaryBar" style="display:none;"></div>
+    <div class="footer" id="footer"></div>
+</div>
+<script>
+const scopeSelect = document.getElementById('scope');
+const runBtn = document.getElementById('runBtn');
+const stopBtn = document.getElementById('stopBtn');
+const outputArea = document.getElementById('outputArea');
+const summaryBar = document.getElementById('summaryBar');
+
+let scopeInterval = null;
+
+function startScopePoll() {
+    if (scopeInterval) return;
+    scopeInterval = setInterval(loadScopes, 5000);
+}
+
+function stopScopePoll() {
+    clearInterval(scopeInterval);
+    scopeInterval = null;
+}
+
+async function loadScopes() {
+    try {
+        const r = await fetch('/api/scopes');
+        const d = await r.json();
+        scopeSelect.innerHTML = '';
+        d.scopes.forEach(s => {
+            const o = document.createElement('option');
+            o.value = s;
+            o.textContent = s === 'all' ? 'All Tests' : s;
+            scopeSelect.appendChild(o);
+        });
+    } catch(e) {}
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function badge(text, cls) {
+    return `<span class="badge ${cls}">${text}</span>`;
+}
+
+function formatTestName(raw) {
+    const parts = raw.split('::');
+    if (parts.length >= 3) return parts.slice(1).join(' :: ');
+    if (parts.length === 2) return parts[1];
+    return raw.split('/').pop() || raw;
+}
+
+function parseOutput(raw) {
+    const lines = raw.split('\\n');
+    const passed = [], failed = [], errors = [], skipped = [];
+    let duration = '';
+
+    // Step 1: collect PASSED/SKIPPED from verbose lines
+    for (const line of lines) {
+        if (/\\bPASSED\\b/.test(line)) {
+            const name = formatTestName(line.split(/\\s+PASSED/)[0].trim());
+            if (name) passed.push(name);
+        } else if (/\\bSKIPPED\\b/.test(line)) {
+            const name = formatTestName(line.split(/\\s+SKIPPED/)[0].trim());
+            if (name) skipped.push(name);
+        }
+        const dm = line.match(/in (\\d+\\.?\\d*s)/);
+        if (dm && /passed|failed|error/.test(line)) duration = dm[1];
+    }
+
+    // Step 2: parse FAILURES / ERRORS sections
+    let inFailures = false;
+    let inErrors = false;
+    let currentName = null;
+    let assertLines = [];
+    let locationLine = '';
+
+    function flushFail(bucket) {
+        if (currentName) {
+            bucket.push({
+                name: currentName,
+                assertion: assertLines.join('\\n').trim(),
+                location: locationLine
+            });
+        }
+        currentName = null;
+        assertLines = [];
+        locationLine = '';
+    }
+
+    for (const line of lines) {
+        if (/^={5,}\\s*FAILURES\\s*={5,}/.test(line)) {
+            inFailures = true; inErrors = false; continue;
+        }
+        if (/^={5,}\\s*ERRORS\\s*={5,}/.test(line)) {
+            flushFail(failed); inErrors = true; inFailures = false; continue;
+        }
+        if (/^={5,}\\s*(short test summary|warnings summary)/.test(line)) {
+            flushFail(inFailures ? failed : errors);
+            inFailures = false; inErrors = false; continue;
+        }
+
+        if (inFailures || inErrors) {
+            const bucket = inFailures ? failed : errors;
+            const headerMatch = line.match(/^_{5,}\\s+(.+?)\\s+_{5,}$/);
+            if (headerMatch) {
+                flushFail(bucket);
+                currentName = formatTestName(headerMatch[1].trim());
+                continue;
+            }
+            if (!locationLine && /\\.py:\\d+/.test(line) && !line.trim().startsWith('E ')) {
+                const m = line.match(/([\\w./]+\\.py:\\d+)/);
+                if (m) locationLine = m[1];
+            }
+            if (/^\\s*E\\s+/.test(line)) {
+                assertLines.push(line.replace(/^\\s*E\\s+/, ''));
             }
         }
-        
-        function showStatus(message, type) {
-            statusDiv.className = `status show ${type}`;
-            statusDiv.textContent = message;
+    }
+    flushFail(failed);
+
+    // Step 3: fallback to short summary lines if sections yielded nothing
+    if (failed.length === 0 && errors.length === 0) {
+        for (const line of lines) {
+            if (/^FAILED\\s+/.test(line.trim())) {
+                const rest = line.replace(/^FAILED\\s+/, '');
+                const [testPath, ...reasonParts] = rest.split(' - ');
+                failed.push({ name: formatTestName(testPath.trim()), assertion: reasonParts.join(' - ').trim(), location: '' });
+            }
+            if (/^ERROR\\s+/.test(line.trim())) {
+                const rest = line.replace(/^ERROR\\s+/, '');
+                const [testPath, ...reasonParts] = rest.split(' - ');
+                errors.push({ name: formatTestName(testPath.trim()), assertion: reasonParts.join(' - ').trim(), location: '' });
+            }
         }
-        
-        function clearOutput() {
-            output.textContent = '';
-        }
-        
-        function addOutput(line, className = '') {
-            // Just display the line as-is (already filtered by backend)
-            const className_map = {
-                'PASSED': 'line-pass',
-                'FAILED': 'line-fail',
-                '❌': 'line-fail',
-                '✅': 'line-pass',
-                'E ': 'line-error',
-            };
-            
-            let lineClass = className;
-            for (const [key, cls] of Object.entries(className_map)) {
-                if (line.includes(key)) {
-                    lineClass = cls;
-                    break;
+    }
+
+    return { passed, failed, errors, skipped, duration };
+}
+
+function renderResults(passed, failed, errors, skipped, duration) {
+    outputArea.innerHTML = '';
+    summaryBar.style.display = 'flex';
+
+    function sectionLabel(text) {
+        const d = document.createElement('div');
+        d.className = 'section-label';
+        d.textContent = text;
+        outputArea.appendChild(d);
+    }
+
+    if (failed.length > 0) {
+        sectionLabel(`Failed (${failed.length})`);
+        failed.forEach(t => {
+            const wrap = document.createElement('div');
+            wrap.className = 'test-fail';
+            const header = document.createElement('div');
+            header.className = 'test-fail-header';
+            header.innerHTML = `<div class="dot-fail"></div>${escHtml(t.name)}`;
+            wrap.appendChild(header);
+            if (t.assertion || t.location) {
+                const body = document.createElement('div');
+                body.className = 'test-fail-body';
+                if (t.location) {
+                    body.innerHTML = `<div class="fail-location">at <code>${escHtml(t.location)}</code></div>`;
                 }
-            }
-            
-            const span = document.createElement('span');
-            if (lineClass) span.className = lineClass;
-            span.textContent = line + '\\n';
-            output.appendChild(span);
-            output.parentElement.scrollTop = output.parentElement.scrollHeight;
-        }
-        
-        async function runTests() {
-            if (isRunning) return;
-            
-            isRunning = true;
-            runBtn.disabled = true;
-            stopBtn.disabled = false;
-            clearOutput();
-            
-            const scope = scopeSelect.value;
-            showStatus(`🚀 Running tests for: ${scope}`, 'info');
-            
-            try {
-                const response = await fetch('/api/run', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ scope })
-                });
-                
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                
-                let fullOutput = '';
-                while (true) {
-                    const {done, value} = await reader.read();
-                    if (done) break;
-                    
-                    const chunk = decoder.decode(value);
-                    fullOutput += chunk;
-                    
-                    // Process line by line
-                    const lines = fullOutput.split('\\n');
-                    for (let i = 0; i < lines.length - 1; i++) {
-                        addOutput(lines[i]);
-                    }
-                    fullOutput = lines[lines.length - 1];
+                if (t.assertion) {
+                    const ab = document.createElement('div');
+                    ab.className = 'assertion-block';
+                    ab.textContent = t.assertion;
+                    body.appendChild(ab);
                 }
-                
-                if (fullOutput) addOutput(fullOutput);
-                
-                const data = await response.json().catch(() => ({}));
-                if (data.success !== undefined) {
-                    if (data.success) {
-                        showStatus('✅ All tests passed!', 'success');
-                    } else {
-                        showStatus(`❌ Tests failed (exit code ${data.code})`, 'error');
-                    }
-                }
-            } catch (error) {
-                addOutput('Error: ' + error.message);
-                showStatus('Error running tests', 'error');
-            } finally {
-                isRunning = false;
-                runBtn.disabled = false;
-                stopBtn.disabled = true;
+                wrap.appendChild(body);
             }
-        }
-        
-        async function stopTests() {
-            try {
-                await fetch('/api/stop', { method: 'POST' });
-                showStatus('⏹ Tests stopped', 'warning');
-            } catch (error) {
-                console.error('Error stopping tests:', error);
+            outputArea.appendChild(wrap);
+        });
+    }
+
+    if (errors.length > 0) {
+        sectionLabel(`Errors (${errors.length})`);
+        errors.forEach(t => {
+            const wrap = document.createElement('div');
+            wrap.className = 'test-fail';
+            wrap.innerHTML = `<div class="test-fail-header"><div class="dot-fail"></div>${escHtml(t.name)}</div>`;
+            if (t.assertion) {
+                const body = document.createElement('div');
+                body.className = 'test-fail-body';
+                const ab = document.createElement('div');
+                ab.className = 'assertion-block';
+                ab.textContent = t.assertion;
+                body.appendChild(ab);
+                wrap.appendChild(body);
             }
-        }
-        
-        runBtn.addEventListener('click', runTests);
-        stopBtn.addEventListener('click', stopTests);
-        
-        // Load scopes on startup
-        loadScopes();
-        
-        // Refresh scopes every 5 seconds
-        setInterval(loadScopes, 5000);
-    </script>
-</body>
-</html>
+            outputArea.appendChild(wrap);
+        });
+    }
+
+    if (passed.length > 0) {
+        sectionLabel(`Passed (${passed.length})`);
+        const toggle = document.createElement('button');
+        toggle.className = 'passes-toggle';
+        toggle.innerHTML = `<span class="tog-arrow">&#9654;</span> Show ${passed.length} passing test${passed.length !== 1 ? 's' : ''}`;
+        outputArea.appendChild(toggle);
+        const list = document.createElement('div');
+        list.className = 'passes-list';
+        list.style.display = 'none';
+        passed.forEach(name => {
+            const row = document.createElement('div');
+            row.className = 'test-pass';
+            row.innerHTML = `<div class="dot-pass"></div>${escHtml(name)}`;
+            list.appendChild(row);
+        });
+        outputArea.appendChild(list);
+        toggle.addEventListener('click', () => {
+            const open = list.style.display !== 'none';
+            list.style.display = open ? 'none' : 'block';
+            toggle.querySelector('.tog-arrow').innerHTML = open ? '&#9654;' : '&#9660;';
+        });
+    }
+
+    if (skipped.length > 0) {
+        sectionLabel(`Skipped (${skipped.length})`);
+        skipped.forEach(name => {
+            const row = document.createElement('div');
+            row.className = 'test-pass';
+            row.style.color = '#bbb';
+            row.innerHTML = `<div class="dot-pass" style="background:#e0e0e0;"></div>${escHtml(name)}`;
+            outputArea.appendChild(row);
+        });
+    }
+
+    if (!passed.length && !failed.length && !errors.length && !skipped.length) {
+        outputArea.innerHTML = '<span style="color:#c62828;">Could not parse test output.</span>';
+    }
+
+    const total = passed.length + failed.length + errors.length + skipped.length;
+    let html = `<span>${total} test${total !== 1 ? 's' : ''}</span>`;
+    if (duration) html += `<span>${duration}</span>`;
+    if (passed.length)  html += badge(`${passed.length} passed`, 'badge-pass');
+    if (failed.length)  html += badge(`${failed.length} failed`, 'badge-fail');
+    if (errors.length)  html += badge(`${errors.length} error${errors.length > 1 ? 's' : ''}`, 'badge-error');
+    if (skipped.length) html += badge(`${skipped.length} skipped`, 'badge-skip');
+    summaryBar.innerHTML = html;
+}
+
+async function runTests() {
+    stopScopePoll();
+    runBtn.disabled = true;
+    stopBtn.disabled = false;
+    summaryBar.style.display = 'none';
+    outputArea.innerHTML = '<span style="color:#888;"><span class="spinner"></span> Running tests...</span>';
+
+    const scope = scopeSelect.value;
+    const start = Date.now();
+
+    try {
+        const response = await fetch('/api/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scope })
+        });
+        const text = await response.text();
+        const { passed, failed, errors, skipped, duration } = parseOutput(text);
+        const elapsed = duration || ((Date.now() - start) / 1000).toFixed(2) + 's';
+        renderResults(passed, failed, errors, skipped, elapsed);
+    } catch (e) {
+        outputArea.innerHTML = `<span style="color:#c62828;">Error: ${escHtml(e.message)}</span>`;
+    } finally {
+        runBtn.disabled = false;
+        stopBtn.disabled = true;
+        startScopePoll();
+    }
+}
+
+async function stopTests() {
+    try { await fetch('/api/stop', { method: 'POST' }); } catch(e) {}
+    runBtn.disabled = false;
+    stopBtn.disabled = true;
+    startScopePoll();
+}
+
+runBtn.addEventListener('click', runTests);
+stopBtn.addEventListener('click', stopTests);
+loadScopes();
+startScopePoll();
+</script>
 """
+
 
 def get_test_scopes():
     """Dynamically discover test scopes."""
     scopes = ["all"]
-    
+
     if TEST_DIR.exists():
         for root, dirs, files in os.walk(TEST_DIR):
             if any(skip in root for skip in [".pytest_cache", "__pycache__", ".git", ".venv"]):
                 continue
-            
+
             rel_root = os.path.relpath(root, TEST_DIR)
             if rel_root != "." and any(pattern in rel_root.lower() for pattern in ["test_", "tests", "integration", "unit_"]):
                 scopes.append(rel_root)
-            
+
             for file in files:
                 if file.startswith("test_") and file.endswith(".py"):
                     rel_file = os.path.relpath(os.path.join(root, file), TEST_DIR)
                     scopes.append(rel_file)
-    
+
     return sorted(list(set(scopes)))
 
 
 class TestRunnerHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        """Handle GET requests."""
         path = urlparse(self.path).path
-        
+
         if path == "/":
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
             html = HTML_TEMPLATE.replace("{test_dir}", str(TEST_DIR))
             self.wfile.write(html.encode())
-        
+
         elif path == "/api/scopes":
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             scopes = get_test_scopes()
             self.wfile.write(json.dumps({"scopes": scopes}).encode())
-        
+
         else:
             self.send_response(404)
             self.end_headers()
-    
+
     def do_POST(self):
-        """Handle POST requests."""
         path = urlparse(self.path).path
-        
+
         if path == "/api/run":
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length)
             data = json.loads(body.decode())
             scope = data.get("scope", "all")
-            
+
             self.send_response(200)
-            self.send_header("Content-type", "text/event-stream")
+            self.send_header("Content-type", "text/plain")
             self.send_header("Cache-Control", "no-cache")
             self.end_headers()
-            
+
             cmd = ["pytest", "-v", "--tb=short", "--disable-warnings"]
             if scope != "all":
                 cmd.append(str(TEST_DIR / scope))
-            
+
             try:
                 process = subprocess.Popen(
                     cmd,
@@ -476,68 +594,48 @@ class TestRunnerHandler(BaseHTTPRequestHandler):
                     bufsize=1
                 )
                 RUNNING["process"] = process
-                
+
                 for line in iter(process.stdout.readline, ''):
-                    if " PASSED" in line:
-                        test_name = line.split(" PASSED")[0].strip()
-                        output_line = f"✅ {test_name}"
-                        self.wfile.write(f"{output_line}\n".encode())
-                        self.wfile.flush()
-                    
-                    elif " FAILED" in line:
-                        test_name = line.split(" FAILED")[0].strip()
-                        output_line = f"❌ {test_name}"
-                        self.wfile.write(f"{output_line}\n".encode())
-                        self.wfile.flush()
-                
+                    self.wfile.write(line.encode())
+                    self.wfile.flush()
+
                 process.wait()
-                success = process.returncode == 0
-                self.wfile.write(f"\n{'='*60}\n".encode())
-                result = {
-                    "success": success,
-                    "code": process.returncode,
-                    "message": "✅ All tests passed!" if success else f"❌ Some tests failed"
-                }
-                self.wfile.write(json.dumps(result).encode())
                 RUNNING["process"] = None
-            
+
             except Exception as e:
-                self.wfile.write(f"Error: {str(e)}".encode())
+                self.wfile.write(f"ERROR: {str(e)}\n".encode())
                 RUNNING["process"] = None
-        
+
         elif path == "/api/stop":
             if RUNNING["process"]:
                 RUNNING["process"].terminate()
-            
+
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"stopped": True}).encode())
-        
+
         else:
             self.send_response(404)
             self.end_headers()
-    
+
     def log_message(self, format, *args):
-        """Suppress default logging."""
         pass
 
 
 def start_server():
-    """Start the web server."""
-    server = HTTPServer(("127.0.0.1", PORT), TestRunnerHandler)
+    server = ThreadingHTTPServer(("127.0.0.1", PORT), TestRunnerHandler)
     print(f"\n✅ Test Runner is ready!")
     print(f"🌐 Opening http://127.0.0.1:{PORT} in your browser...")
     print(f"Press Ctrl+C to stop\n")
-    
-    # Open browser after a short delay
+
     def open_browser():
         time.sleep(1)
         webbrowser.open(f"http://127.0.0.1:{PORT}")
-    
+
     browser_thread = threading.Thread(target=open_browser, daemon=True)
     browser_thread.start()
-    
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
