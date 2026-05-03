@@ -1,4 +1,4 @@
-import '../../test-utils/mocks';
+import '../../test-utils/profileMocks';
 
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
