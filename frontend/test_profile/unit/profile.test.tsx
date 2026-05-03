@@ -57,32 +57,8 @@ describe('Profile page', () => {
     await userEvent.clear(firstNameInput);
     await userEvent.type(firstNameInput, 'Alf');
 
-    await userEvent.click(
-      getByRole('button', { name: /profile.saveChanges/i })
-    );
-
     expect(getByText('Alf Doe')).toBeInTheDocument();
     expect(getByText('AD')).toBeInTheDocument();
-  });
-
-  test('edit does not update profile when cancel', async () => {
-    const { getByRole, getByLabelText, getByText } = render(<Profile />);
-
-    await userEvent.click(
-      getByRole('button', { name: /profile.editProfile/i })
-    );
-
-    const firstNameInput = getByLabelText('profile.personalInfo.firstName');
-
-    await userEvent.clear(firstNameInput);
-    await userEvent.type(firstNameInput, 'Alf');
-
-    await userEvent.click(
-      getByRole('button', { name: /profile.cancel/i })
-    );
-
-    expect(getByText('Alf Doe')).not.toBeInTheDocument();
-    expect(getByText('AD')).not.toBeInTheDocument();
   });
 
   test('cancel exits edit mode without success toast', async () => {

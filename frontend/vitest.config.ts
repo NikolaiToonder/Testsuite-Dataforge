@@ -12,6 +12,10 @@ export default defineConfig({
   dedupe: ['react', 'react-dom'],
   alias: [
     {
+      find: /^react-router-dom$/,
+      replacement: path.resolve(__dirname, 'test-utils/reactRouterDom.mock.ts'),
+    },
+    {
       find: /^sonner$/,
       replacement: path.resolve(__dirname, 'test-utils/toastMock.ts')
     },
@@ -34,6 +38,14 @@ export default defineConfig({
     {
       find: /^components\/(.*)$/,
       replacement: `${appSrc}/components/$1`,
+    },
+    {
+      find: /^app\/auth$/,
+      replacement: path.resolve(__dirname, 'test-utils/appAuth.mock.ts'),
+    },
+    {
+      find: /^app$/,
+      replacement: path.resolve(__dirname, 'test-utils/app.mock.ts')
     },
     {
       find: /^app\/(.*)$/,
