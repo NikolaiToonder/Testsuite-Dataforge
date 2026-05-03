@@ -35,7 +35,7 @@ async def delete_messages():
 def run_server():
     uvicorn.run(app, host="127.0.0.1", port=8123, log_level="warning")
 
-
+#This fixture is basically the same as the one databutton provides, just wanted to use it here aswell for isolated testing. 
 @pytest.fixture(scope="module")
 def devx_server():
     """Runs a real local server simulating the DevX environment to test HTTP boundaries."""
@@ -64,38 +64,29 @@ def setup_teardown(devx_server):
     requests.delete(f"{devx_server}/messages")
 
 
-class TestDevxClientIntegration:
-    """True integration tests for DevxClient that verify HTTP mechanics over the wire against a real receiver."""
+#Tests!!
 
+class TestDevxClientIntegration:
     def test_ping_and_wait_for_devx_ready(self, devx_server):
-        # Arrange
         cfg = Config(DEVX_URL_INTERNAL=devx_server)
         client = DevxClient(cfg)
 
-        # Act
         is_ready = client.wait_for_devx_ready(max_retries=1, delay=0.1)
 
-        # Assert
         assert is_ready is True
         assert client.ping() is True
 
     @pytest.mark.asyncio
     async def test_notify_logs_async_sends_correct_http_payload(self, devx_server):
-        # Arrange
         cfg = Config(DEVX_URL_INTERNAL=devx_server)
         client = DevxClient(cfg)
-        
-        # Act
         await client.notify_logs_async(text="Integration Test Log", level="info")
         
-        # We must fetch the state from the external process via HTTP
         response = requests.get(f"{devx_server}/messages")
         messages = response.json()
 
-        # Assert
         assert len(messages) == 1
         msg = messages[0]
-        
         assert msg["topic"] == Topics.backend_log.value
         assert msg["payload"]["text"] == "Integration Test Log"
         assert msg["payload"]["level"] == "info"
