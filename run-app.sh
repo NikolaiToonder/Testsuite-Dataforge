@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_PATH="/home/thomas/bachelor/dataforge"
+APP_PATH="../dataforge"
 
 # Start backend
 echo "Starting backend..."
@@ -12,7 +12,7 @@ cd ..
 
 # Start frontend
 echo "Starting frontend..."
-cd "$APP_PATH/frontend"
+cd "frontend"
 yarn dev &
 FRONTEND_PID=$!
 cd ..
@@ -26,6 +26,6 @@ echo "Backend PID: $BACKEND_PID"
 echo "Frontend PID: $FRONTEND_PID"
 
 # Cleanup on exit
-trap "echo 'Stopping...'; kill $BACKEND_PID $FRONTEND_PID; docker compose down" EXIT
+trap "echo 'Stopping...'; kill $BACKEND_PID $FRONTEND_PID" EXIT
 
 wait
