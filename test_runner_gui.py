@@ -849,11 +849,11 @@ class TestRunnerHandler(BaseHTTPRequestHandler):
 
             elif test_type == "frontend":
                 if runner == "vitest":
-                    cmd = ["npx", "vitest", "run", "--reporter=verbose"]
+                    cmd = ["npm", "run", "test:unit"]
                     if scope != "all":
                         cmd.append(scope)
                 elif runner == "playwright":
-                    cmd = ["npx", "playwright", "test", "--reporter=list"]
+                    cmd = ["npm", "run", "test:e2e"]
                     if scope != "all":
                         cmd.append(scope)
                 cwd = FRONTEND_DIR
