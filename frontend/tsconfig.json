@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "jsx": "react-jsx",
+    "types": ["node", "@playwright/test", "vitest/globals", "@testing-library/jest-dom", "@types/react", "@types/react-dom"],
+    "esModuleInterop": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/components/ui/*": ["../..dataforge/frontend/src/extensions/shadcn/components/*"],
+      "@/components/*": ["../../dataforge/frontend/src/extensions/shadcn/components/*"],
+      "@/*": ["../../dataforge/frontend/src/*"],
+      "components/*": ["../../dataforge/frontend/src/extensions/components/*"],
+      "app/*": ["../../dataforge/frontend/src/app/*"]
+    }
+  },
+  "include": ["test_profile", "./playwright.config.ts", "auth.setup.ts", "test_settings/end-to-end/settings.spec.ts", "setup.ts"]
+}
