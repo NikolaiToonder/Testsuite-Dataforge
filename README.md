@@ -7,8 +7,8 @@
 4. [Running Tests](#running-tests)
 ---
 ## Overview
-The test suite validates the Dataforge backend API — a FastAPI application backed by a PostgreSQL database. Tests are written with [pytest](https://pytest.org) and live in the `backend/` directory of this repository, separate from the application source which lives in `../dataforge/backend/`.
-The suite uses a real PostgreSQL instance (via Docker, managed by `testcontainers`) for integration tests, and mock-based isolation for unit tests. Authentication and authorization are bypassed in all tests through FastAPI's dependency override system.
+
+This test suite validates Dataforge, an IoT application from Innoveria. Tests are written using pytest, vitest and playwright.
 ---
 ## Prerequisites
 - Python 3.11+
