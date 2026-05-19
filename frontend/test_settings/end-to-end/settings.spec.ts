@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { emitKeypressEvents } from 'node:readline';
 
 test('settings: page renders', async ({ page }) => {
   await page.goto('/settings');
@@ -23,7 +22,7 @@ test('settings: add sensor', async ({ page }) => {
   const nextButton = page.getByRole('button', { name: 'Neste'});
 
   await page.getByText('3-fase Strømmåler').click();
-  await page.getByRole('textbox', { name: 'Sensor Navn'}).fill('Strømmåler');
+  await page.getByRole('textbox', { name: 'Sensor Navn'}).fill('Test Sensor');
   await nextButton.click();
 
   const sensorEUI = page.getByRole('textbox', { name: 'Sensor EUI'});
@@ -35,7 +34,8 @@ test('settings: add sensor', async ({ page }) => {
   await page.getByText('230V Enfase').click();
   await nextButton.click();
 
-  await expect(page.locator('body')).toContainText(/saved|lagret|created|opprettet/i);
+  await expect(page.getByRole('dialog')).not.toBeVisible({timeout: 2000});
+  await expect(page.getByText('Test Sensor')).toBeVisible({timeout: 2000});
 });
 
 test('settings: add machine', async ({ page }) => {
@@ -51,7 +51,8 @@ test('settings: add machine', async ({ page }) => {
   
   await page.getByRole('button', { name: 'Opprett maskin'}).click();
 
-  await expect(page.locator('body')).toContainText(/saved|lagret|created|opprettet/i);
+  await expect(page.getByRole('dialog')).not.toBeVisible({timeout: 2000});
+  await expect(page.getByText('Test Machine')).toBeVisible({timeout: 2000});
 });
 
 test('settings: add department', async ({ page }) => {
@@ -67,7 +68,8 @@ test('settings: add department', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Opprett' }).click();
 
-  await expect(page.locator('body')).toContainText(/saved|lagret|created|opprettet/i);
+  await expect(page.getByRole('dialog')).not.toBeVisible({timeout: 2000});
+  await expect(page.getByText('Test Department')).toBeVisible({timeout: 2000});
 });
 
 test('settings: add erp', async ({ page }) => {
@@ -98,5 +100,6 @@ test('settings: add erp', async ({ page }) => {
   
   await page.getByRole('button', { name: 'Opprett konfigurasjon' }).click();
 
-  await expect(page.locator('body')).toContainText(/saved|lagret|created|opprettet/i);
+  await expect(page.getByRole('dialog')).not.toBeVisible({timeout: 2000});
+  await expect(page.getByText('Test System')).toBeVisible({timeout: 2000});
 });

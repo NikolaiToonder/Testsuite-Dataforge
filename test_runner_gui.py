@@ -849,14 +849,15 @@ class TestRunnerHandler(BaseHTTPRequestHandler):
 
             elif test_type == "frontend":
                 if runner == "vitest":
-                    cmd = ["npm", "run", "test:unit"]
+                    cmd = ["npm", "run", "test:integration","--" "--reporter=verbose"]
                     if scope != "all":
                         cmd.append(scope)
+                    cwd = FRONTEND_DIR
                 elif runner == "playwright":
-                    cmd = ["npm", "run", "test:e2e"]
+                    cmd = ["./run-e2e.sh"]
                     if scope != "all":
                         cmd.append(scope)
-                cwd = FRONTEND_DIR
+                    cwd = TEST_DIR
 
             try:
                 process = subprocess.Popen(
