@@ -1,36 +1,22 @@
 # QA-Testing Framework for Dataforge
 ---
-
 ## Table of Contents
-
 1. [Overview](#overview)
 2. [Prerequisites](#prerequisites)
 3. [Project Structure](#project-structure)
 4. [Running Tests](#running-tests)
-5. [Test Types](#test-types)
-6. [The conftest.py in depth](#the-conftestpy-in-depth)
-7. [Writing New Tests](#writing-new-tests)
-8. [Fixtures Reference](#fixtures-reference)
-9. [Troubleshooting](#troubleshooting)
-
 ---
-
 ## Overview
-
 The test suite validates the Dataforge backend API — a FastAPI application backed by a PostgreSQL database. Tests are written with [pytest](https://pytest.org) and live in the `backend/` directory of this repository, separate from the application source which lives in `../dataforge/backend/`.
-
 The suite uses a real PostgreSQL instance (via Docker, managed by `testcontainers`) for integration tests, and mock-based isolation for unit tests. Authentication and authorization are bypassed in all tests through FastAPI's dependency override system.
-
 ---
-
 ## Prerequisites
-
 - Python 3.11+
 - Docker (required for the PostgreSQL test container)
+- Node.js (required for Vitest and Playwright)
 - The project's virtual environment activated
 
 Install dependencies:
-
 ```bash
 cd Testsuite-Dataforge
 python -m venv .venv
@@ -38,16 +24,18 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Verify Docker is running before executing any tests:
+Install frontend dependencies:
+```bash
+cd frontend
+npm install
+```
 
+Verify Docker is running before executing any tests:
 ```bash
 docker info
 ```
-
 ---
-
 ## Project Structure
-
 ```
 Testsuite-Dataforge/
 ├── backend/
@@ -64,77 +52,82 @@ Testsuite-Dataforge/
 │           ├── test_payload_decoders_unit.py
 │           └── ...
 │
+├── frontend/                        # Frontend tests (Vitest + Playwright)
+├── logs/                            # Test output logs (auto-created)
+├── test.sh                          # Main entry point for running all tests
+├── run-e2e.sh                       # Playwright runner (called by test.sh)
 ├── pyproject.toml                   # Pytest configuration
 └── TESTING.md                       # This file
 ```
-
 The application code being tested lives outside this repository:
-
 ```
 ../dataforge/backend/       # FastAPI app, imported by conftest.py at runtime
 ```
+---
+## Running Tests
+
+All tests are run through `test.sh` from the repository root. This is the primary and recommended way to execute the test suite.
+
+```bash
+./test.sh
+```
+
+The script runs four steps in sequence:
+
+| Step | Tool | What it does |
+|------|------|--------------|
+| 1 | **Ruff** | Lints the Dataforge backend source |
+| 2 | **Pytest** | Runs all backend unit and integration tests |
+| 3 | **Vitest** | Runs frontend integration tests |
+| 4 | **Playwright** | Runs end-to-end tests |
+
+Each step prints a live status line and writes detailed output to a log file under `logs/`:
+
+| Log file | Contents |
+|----------|----------|
+| `logs/lint_log.txt` | Ruff linting output |
+| `logs/testsuite_log.txt` | Pytest output |
+| `logs/vitest_log.txt` | Vitest output |
+| `logs/e2e_log.txt` | Playwright output |
+
+The script continues through all steps regardless of individual failures, so you get a full picture in one run. Exit status per step is shown inline:
+
+```
+✅ Pytest succeeded after 42s
+❌ Playwright: Some of the tests failed after 18s. See logs/e2e_log.txt
+```
+
+If a step fails, check the corresponding log file for details.
 
 ---
 
-## Running Tests
+## Running Individual Test Steps (Advanced)
 
-All commands should be run from the repository root (`Testsuite-Dataforge/`).
+If you need to run a specific part of the suite in isolation during development, you can invoke the tools directly. This is not the recommended workflow — prefer `test.sh` for full runs.
 
-### Run the full test suite
-
+### Pytest only
 ```bash
 pytest backend/
 ```
 
-### Run a specific high-level directory
-
-```bash
-pytest backend/test_apis/
-pytest backend/test_libs/
-pytest backend/test_internal/
-```
-
-### Run a single test file
-
+### Run a specific file or test
 ```bash
 pytest backend/test_apis/Integration/test_sensor_data.py
-pytest backend/test_libs/Unit_tests/test_payload_decoders_unit.py
-```
-
-### Run a single test class
-
-```bash
-pytest backend/test_apis/test_sensor_data.py::TestReadingsFilters
-```
-
-### Run a single test by name
-
-```bash
 pytest backend/test_apis/test_sensor_data.py::TestReadingsFilters::test_filter_by_sensor_euis
 ```
 
 ### Run tests matching a keyword
-
 ```bash
-pytest -k "sensor"          # all tests with "sensor" in the name
-pytest -k "not admin"       # exclude tests with "admin" in the name
+pytest -k "sensor"
+pytest -k "not admin"
 ```
 
-### Useful flags
-
+### Useful pytest flags
 | Flag | Effect |
 |------|--------|
 | `-v` | Verbose output — shows each test name and result |
 | `-x` | Stop after the first failure |
-| `--tb=short` | Compact traceback (default in CI) |
+| `--tb=short` | Compact traceback |
 | `--tb=long` | Full traceback with local variables |
 | `--disable-warnings` | Suppress deprecation warnings |
 | `-s` | Show print/log output from tests |
-
-Example combining flags:
-
-```bash
-pytest backend/test_apis/test_admin_unit.py -v --tb=short -x
-```
-
----
