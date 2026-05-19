@@ -5,7 +5,12 @@ dotenv.config({ path: '.env.local' })
 
 export default defineConfig({
   testDir: '.',
-  testMatch: ['**/end-to-end/**/*.spec.ts', '**/integration/**/*.spec.ts'],
+  testMatch: ['**/end-to-end/**/*.spec.ts'],
+  /*webServer: {
+    command: 'cd ../../dataforge/frontend && VITE_COVERAGE=true yarn dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: false,
+  },*/
   projects: [
     {
       name: 'setup',

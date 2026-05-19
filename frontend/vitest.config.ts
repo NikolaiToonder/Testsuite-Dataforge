@@ -54,6 +54,16 @@ export default defineConfig({
   ],
     },
     test: {
+        coverage: { 
+          provider: 'v8',
+          allowExternal: true,
+          include: [
+            `${appSrc}/pages/Profile.tsx`,
+            `${appSrc}/pages/Settings.tsx`
+          ],
+          reporter: ['text', 'html', 'lcov', 'json'],
+          reportsDirectory: './logs/coverage/vitest'
+        },
         environment: 'jsdom',
         globals: true,
         setupFiles: './setup.ts',
